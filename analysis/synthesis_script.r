@@ -79,6 +79,9 @@ stan_ess(m_rich, pars = "beta")
 post_m_rich <- rstan::extract(m_rich)
 # save this for later use
 # saveRDS(post_m_rich,"Stan_model_rich_posterior.rds")
+# to reload the poseterior draws
+# post_m_rich <- readRDS("post_m_rich.rds")
+
 
 ### Model 2. Diversity - interaction ###
 
@@ -134,170 +137,11 @@ stan_ess(m_div, pars = "beta")
 post_m_div <- rstan::extract(m_div)
 # save this for later use
 # saveRDS(post_m_div,"Stan_model_div_posterior.rds")
+# to reload the saved posterior draws
+# post_m_div <- readRDS("post_m_div.rds")
 
 
-######## Figure ternary plots for all functions #########
-predd <- post_m3$y_pred
-predd <- adply(predd,c(2,3),quantile,probs=0.5)
-predd$fsyl <- X_3pred[predd$X1,2]
-predd$qrob <- X_3pred[predd$X1,3]
-predd$qrub <- X_3pred[predd$X1,4]
-predd$Function <- names(dat_std)[-1][predd$X2]
-predd$Fragm <- rep(rep(c("Low","Medium","High"),each=46),24)
-names(predd)[3] <- "Med"
-
-#transform back the predicted values to their original scale
-#get mean and sd for each function
-dat %>%
-  gather(Function,value,-id_plot) %>%
-  group_by(Function) %>%
-  summarise(M=mean(value,na.rm=TRUE),SD=sd(value,na.rm=TRUE)) -> mean_sd
-
-predd %>%
-  left_join(mean_sd,by="Function") %>%
-  mutate(Med_real = (Med * SD) + M) %>%
-  select(Fragm,Function,fsyl:qrub,Med_real) -> predd2
-
-#the function that does the job
-
-#go through vegetation functions
-veg_fun <- c("Biomass","Veg_div","Cover","GLI","LAI","P_germ","Seed_biom")
-fragm_lvl <- c("Low","High")
-ss <- expand.grid(fragm = fragm_lvl, fun = veg_fun)
-tmp <- list()
-for(f in veg_fun){
-  for(ff in fragm_lvl){
-    tmp[[length(tmp)+1]] <- make_ind_gg(predd2,f,ff)
-  }
-}
-
-
-gg_a <- ggtern::arrangeGrob(grobs=tmp,ncol=2,nrow=7,top = "Effect of varying tree composition on vegetation functions\nfor low fragmentation (left) vs high fragmentation (right) intensity")
-ggf <- ggtern::grid.arrange(gg_a)
-ggsave("../Output/Figures/17v2_ternary_veg.png",ggf,width=7,height=18,units="in")
-#now for soil functions
-veg_fun <- c("C_stock","CN","P","BS","pH","Decomp")
-fragm_lvl <- c("Low","High")
-ss <- expand.grid(fragm = fragm_lvl, fun = veg_fun)
-tmp <- list()
-for(f in veg_fun){
-  for(ff in fragm_lvl){
-    tmp[[length(tmp)+1]] <- make_ind_gg(predd2,f,ff)
-  }
-}
-
-
-gg_a <- ggtern::arrangeGrob(grobs=tmp,ncol=2,nrow=6,top = "Effect of varying tree composition on soil functions\nfor low fragmentation (left) vs high fragmentation (right) intensity")
-ggf <- ggtern::grid.arrange(gg_a)
-ggsave("../Output/Figures/16v2_ternary_soil.png",ggf,width=7,height=16,units="in")
-#now for arthropods functions
-veg_fun <- c("Arth_div","Herbivory","Predation","Fit_spider","Spider_diet")
-fragm_lvl <- c("Low","High")
-ss <- expand.grid(fragm = fragm_lvl, fun = veg_fun)
-tmp <- list()
-for(f in veg_fun){
-  for(ff in fragm_lvl){
-    tmp[[length(tmp)+1]] <- make_ind_gg(predd2,f,ff)
-  }
-}
-
-
-gg_a <- ggtern::arrangeGrob(grobs=tmp,ncol=2,nrow=5,
-                            top = "Effect of varying tree composition on arthropod functions\nfor low fragmentation (left) vs high fragmentation (right) intensity")
-ggf <- ggtern::grid.arrange(gg_a)
-ggsave("../Output/Figures/14v2_ternary_arth.png",ggf,width=7,height=16,units="in")
-
-#this figure rotated
-gg_a <- ggtern::arrangeGrob(grobs=tmp,ncol=5,nrow=2,as.table = FALSE,
-                            top = "Effect of varying tree composition on arthropod functions\nfor low fragmentation (top) vs high fragmentation (bottom) intensity")
-ggf <- ggtern::grid.arrange(gg_a)
-ggsave("../Output/Figures/ternary_arth_r.png",ggf,width=16,height=7,units="in")
-
-
-#now for bird functions
-veg_fun <- c("Bird_smi","Breed_succ","Bird_div","Egg_vol","Egg_bact","Egg_IgY")
-fragm_lvl <- c("Low","High")
-ss <- expand.grid(fragm = fragm_lvl, fun = veg_fun)
-tmp <- list()
-for(f in veg_fun){
-  for(ff in fragm_lvl){
-    tmp[[length(tmp)+1]] <- make_ind_gg(predd2,f,ff)
-  }
-}
-
-
-gg_a <- ggtern::arrangeGrob(grobs=tmp,ncol=2,nrow=6,top = "Effect of varying tree composition on bird functions\nfor low fragmentation (left) vs high fragmentation (right) intensity")
-ggf <- ggtern::grid.arrange(gg_a)
-ggsave("../Output/Figures/15v2_ternary_bird.png",ggf,width=7,height=16,units="in")
-
-
-########### figures desirability Kirwan #######
-#look at the desirability
-post_m3 <- readRDS("Stan_model_m3_posterior.rds")
-ddf <- adply(post_m3$desirability_manager,2,quantile,probs=0.5)
-ddf$fsyl <- X_3pred[ddf$X1,2]
-ddf$qrob <- X_3pred[ddf$X1,3]
-ddf$qrub <- X_3pred[ddf$X1,4]
-ddf$Fragm <- rep(c("Low","Medium","High"),each=46)
-names(ddf)[2] <- "Med"
-ddf$Med100 <- ddf$Med * 100
-
-gg_fl <- ggtern(subset(ddf,Fragm=="Low"),aes(fsyl,qrob,qrub))+
-  theme_bw()+
-  geom_tri_tern(bins=4,fun=mean,aes(value=Med,fill=..stat..)) +
-  stat_tri_tern(bins=4,fun=mean,geom="text",aes(value=Med,
-                                                label=sprintf("%.2f",..stat..)),
-                color="lightgrey",centroid=TRUE) +
-  scale_fill_viridis(option="C") +
-  annotate(geom="text",x=100,y=0,z=100,label="a") +
-  theme(legend.position = "none")
-
-gg_fh <- ggtern(subset(ddf,Fragm=="High"),aes(fsyl,qrob,qrub))+
-  theme_bw()+
-  geom_tri_tern(bins=4,fun=mean,aes(value=Med,fill=..stat..)) +
-  stat_tri_tern(bins=4,fun=mean,geom="text",aes(value=Med,
-                                                label=sprintf("%.2f",..stat..)),
-                color="lightgrey",centroid=TRUE) +
-  scale_fill_viridis(option="C") +
-  theme(legend.position = "none")
-
-gg_d <- ggtern::arrangeGrob(grobs=list(gg_fl,gg_fh),ncol=2,
-                            top="")
-ggd <- ggtern::grid.arrange(ggd_div,gg_d)
-ggsave("../Output/Figures/02_desirability.png",ggd,width=20,height=20,units="cm",dpi=100) 
-
-ddn <- adply(post$desirability_natuur,2,quantile,probs=0.5)
-ddn$fsyl <- X_4pred[ddn$X1,2]
-ddn$qrob <- X_4pred[ddn$X1,3]
-ddn$qrub <- X_4pred[ddn$X1,4]
-ddn$Fragm <- rep(c("Low","Medium","High"),each=46)
-names(ddn)[2] <- "Med"
-ddn$Med100 <- ddn$Med * 100
-
-gg_nl <- ggtern(subset(ddn,Fragm=="Low"),aes(fsyl,qrob,qrub))+
-  theme_bw()+
-  geom_tri_tern(bins=4,fun=mean,aes(value=Med,fill=..stat..)) +
-  stat_tri_tern(bins=4,fun=mean,geom="text",aes(value=Med,
-                                                label=sprintf("%.2f",..stat..)),
-                color="lightgrey",centroid=TRUE) +
-  scale_fill_viridis(option="C") +
-  theme(legend.position = "none")
-
-gg_nh <- ggtern(subset(ddn,Fragm=="High"),aes(fsyl,qrob,qrub))+
-  theme_bw()+
-  geom_tri_tern(bins=4,fun=mean,aes(value=Med,fill=..stat..)) +
-  stat_tri_tern(bins=4,fun=mean,geom="text",aes(value=Med,
-                                                label=sprintf("%.2f",..stat..)),
-                color="lightgrey",centroid=TRUE) +
-  scale_fill_viridis(option="C") +
-  theme(legend.position = "none")
-
-gg_d <- ggtern::arrangeGrob(grobs=list(gg_fl,gg_nl,gg_fh,gg_nh),ncol=2,
-                            left="High fragmentation intensity          Low fragmentation intensity",
-                            top="Desirability scores across variation in tree relative abundance\nfor foresters (left) or nature conservation (right)\nin the tree interaction model")
-ggd <- ggtern::grid.arrange(gg_d)
-ggsave("../Output/Figures/ternary_desirability_int_f.eps",ggd,width=20,height=20,units="cm",dpi=100) 
-
+### Figures ###
 
 # figure 1: slopes from richness model
 
@@ -326,13 +170,14 @@ ggsave("01_slopes_diversity.png",gg_fig1,width=10,height=6,units="in",dpi=100)
 
 # figure 2: desirability 
 
-# plot desirability scores
-d_f <- post_m1$desirability_manager
-dd_f <- adply(d_f,2,quantile,probs=c(0.25,0.5,0.75))
+# gather desirability scores from the richness - fragmentation model
+d_f <- post_m_rich$desirability_manager # extract the posterior draws
+dd_f <- adply(d_f,2,quantile,probs=c(0.25,0.5,0.75)) # compute the quantile
+# some data reshaping
 names(dd_f)[2:4] <- c("LCI","Med","UCI")
 dd_f$div <- X_1pred[dd_f$X1,"specrich"]
 dd_f$fragm <- X_1pred[dd_f$X1,"fragm"]
-dd_f$fragmF <- factor(dd_f$fragm,labels=c("High","Medium","Low"))
+dd_f$fragmF <- factor(dd_f$fragm,labels=c("Low","Medium","High"))
 dd_f$divF <- factor(dd_f$div,labels=c(1,2,3))
 
 ggd_div <- ggplot(dd_f,aes(x=div,y=Med,group=fragmF)) +
@@ -343,6 +188,75 @@ ggd_div <- ggplot(dd_f,aes(x=div,y=Med,group=fragmF)) +
        x="Tree richness",y="Desirability score with 50% credible intervals") +
   theme_bw()
 
-#save just that one
-ggsave("../Output/Figures/02_model_forest_desirability.png",ggd_div,width=10,height=10,units="cm")
+# gather desirability scores from the diversity - interaction model
 
+ddf <- adply(post_m_div$desirability_manager,2,quantile,probs=0.5) #only get the median this time
+ddf$fsyl <- X_3pred[ddf$X1,2]
+ddf$qrob <- X_3pred[ddf$X1,3]
+ddf$qrub <- X_3pred[ddf$X1,4]
+ddf$Fragm <- rep(c("Low","Medium","High"),each=46)
+names(ddf)[2] <- "Med"
+ddf$Med100 <- ddf$Med * 100
+
+gg_fl <- ggtern(subset(ddf,Fragm=="Low"),aes(fsyl,qrob,qrub))+
+  theme_bw()+
+  geom_tri_tern(bins=4,fun=mean,aes(value=Med,fill=..stat..)) +
+  stat_tri_tern(bins=4,fun=mean,geom="text",aes(value=Med,
+                                                label=sprintf("%.2f",..stat..)),
+                color="lightgrey",centroid=TRUE) +
+  scale_fill_viridis(option="C") +
+  theme(legend.position = "none")
+
+gg_fh <- ggtern(subset(ddf,Fragm=="High"),aes(fsyl,qrob,qrub))+
+  theme_bw()+
+  geom_tri_tern(bins=4,fun=mean,aes(value=Med,fill=..stat..)) +
+  stat_tri_tern(bins=4,fun=mean,geom="text",aes(value=Med,
+                                                label=sprintf("%.2f",..stat..)),
+                color="lightgrey",centroid=TRUE) +
+  scale_fill_viridis(option="C") +
+  theme(legend.position = "none")
+
+gg_d <- ggtern::arrangeGrob(grobs=list(gg_fl,gg_fh),ncol=2,
+                            top="")
+ggd <- ggtern::grid.arrange(ggd_div,gg_d)
+
+#ggsave("02_desirability.png",ggd,width=20,height=20,units="cm",dpi=100) 
+
+# figure 3: function - function correlations
+
+# plot index for low and high fragmentation intensity
+fragmCatLow <- which(div_dd$fragm_std < quantile(div_dd$fragm_std,0.25))
+fragmCatHigh <- which(div_dd$fragm_std > quantile(div_dd$fragm_std,0.75))
+
+# predicted correlation low fragmentation intensity for model 1
+m1_corl <- apply(apply(post_m_rich$y_post[,fragmCatLow,],1,cor),1,median) # grab median correlation
+# some data re-shaping
+m1_ddl <- data.frame(Fun1 = rep(nice_name,each=24),Fun2 = rep(nice_name,times=24),Cor=m1_corl)
+m1_ml <- dcast(m1_ddl, Fun1 ~ Fun2, value.var = "Cor")
+# plot
+n1 <- network_df(as_cordf(m1_ml[,-1]),min_cor = 0.3,legend=FALSE,repel=FALSE) + 
+  labs(title="") + 
+  theme(plot.margin = unit(c(0,0,0,0),"line"),plot.background = element_rect(fill="grey70"))
+
+# same stuff for high fragmentation for model 1
+m1_corh <- apply(apply(post_m_rich$y_post[,fragmCatHigh,],1,cor),1,median)
+m1_ddh <- data.frame(Fun1 = rep(nice_name,each=24),Fun2 = rep(nice_name,times=24),Cor=m1_corh)
+m1_mh <- dcast(m1_ddh, Fun1 ~ Fun2, value.var = "Cor")
+n2 <- network_df(as_cordf(m1_mh[,-1]),min_cor = 0.3,legend=FALSE,repel=FALSE) + labs(title="") + theme(plot.margin = unit(c(0,0,0,0),"line"),
+                                                                                                       plot.background = element_rect(fill="grey70"))
+# same stuff for low fragmentation for model 2
+m3_corl <- apply(apply(post_m_div$y_post[,fragmCatLow,],1,cor),1,median)
+m3_ddl <- data.frame(Fun1 = rep(nice_name,each=24),Fun2 = rep(nice_name,times=24),Cor=m3_corl)
+m3_ml <- dcast(m3_ddl, Fun1 ~ Fun2, value.var = "Cor")
+n3 <- network_df(as_cordf(m3_ml[,-1]),min_cor = 0.3,legend=FALSE,repel=FALSE) + labs(title="") + theme(plot.margin = unit(c(0,0,0,0),"line"),
+                                                                                                       plot.background = element_rect(fill="grey70"))
+# same stuff for high fragmentation for model 2
+m3_corh <- apply(apply(post_m_div$y_post[,fragmCatHigh,],1,cor),1,median)
+m3_ddh <- data.frame(Fun1 = rep(nice_name,each=24),Fun2 = rep(nice_name,times=24),Cor=m3_corh)
+m3_mh <- dcast(m3_ddh, Fun1 ~ Fun2, value.var = "Cor")
+n4 <- network_df(as_cordf(m3_mh[,-1]),min_cor = 0.3,legend=FALSE,repel=FALSE) + labs(title="") + theme(plot.margin = unit(c(0,0,0,0),"line"),
+                                                                                                       plot.background = element_rect(fill="grey70"))
+# combine all panels
+nn_all <- grid.arrange(n1,n2,n3,n4,ncol=2,top="Low fragmentation                                                       High fragmentation",
+                       left="Composition model                                                  Richness model")
+ggsave("../Output/Figures/03_trade_offs.png",nn_all,width=30,height=30,units="cm")
