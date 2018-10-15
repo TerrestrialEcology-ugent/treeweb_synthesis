@@ -1,5 +1,7 @@
 # TREEWEB synthesis 
 
+[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.1462802.svg)](https://doi.org/10.5281/zenodo.1462802)
+
 This repository contain all scripts and data needed to reproduce the analysis and main figures presented in the submitted manuscript: "Forest fragmentation modulates effects of tree species richness and composition on ecosystem multifunctionality"
 
 ## How to
@@ -16,4 +18,5 @@ All these analysis were ran with the following R and packages version:
 * R v3.4.4
 * rstan v2.17
 * dplyr v0.7.6
+
 
