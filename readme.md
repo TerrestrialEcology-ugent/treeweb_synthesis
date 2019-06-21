@@ -2,7 +2,7 @@
 
 [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.1462802.svg)](https://doi.org/10.5281/zenodo.1462802)
 
-This repository contain all scripts and data needed to reproduce the analysis and main figures presented in the submitted manuscript: "Forest fragmentation modulates effects of tree species richness and composition on ecosystem multifunctionality"
+This repository contain all scripts and data needed to reproduce the analysis and main figures presented in the published paper: "Forest fragmentation modulates effects of tree species richness and composition on ecosystem multifunctionality", full text available [here](https://esajournals.onlinelibrary.wiley.com/doi/full/10.1002/ecy.2653) pdf are available upon request. 
 
 ## How to
 
